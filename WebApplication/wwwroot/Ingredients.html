@@ -1,0 +1,252 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ingredients</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.0/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+    <h2 class="text-center">Table "Ingredients"</h2>
+
+    <form name="ingredientForm">
+        <input type="hidden" id="inId" name="inId" value=0 />
+        <div class="form-group">
+            <label>Name: </label>
+            <input type="text" id="inName" name="inName" />
+
+            <label>ReleaseDate: </label>
+            <input type="date" id="inReleaseDate" name="inReleaseDate" />
+
+            <label>Count: </label>
+            <input type="number" id="inCount" name="inCount" />
+
+            <label>Cost: </label>
+            <input type="number" step="0.1" id="inCost" name="inCost" />
+
+            <label>ExpirationDate: </label>
+            <input type="number" id="inExpirationDate" name="inExpirationDate" />
+
+            <label>Provider: </label>
+            <select id="inProvider" name="inProvider">
+            </select>
+
+            <button type="submit" id="submit" class="btn btn-primary">Save</button>
+            <a id="reset" onclick="reset()" class="btn btn-primary text-white">Reset</a>
+        </div>
+    </form>
+
+    <table class="table table-striped text-break">
+        <thead class="thead-dark">
+            <tr>
+                <th>Id</th>
+                <th>Name</th>
+                <th>ReleaseDate</th>
+                <th>Count</th>
+                <th>Cost</th>
+                <th>ExpirationDate</th>
+                <th>Provider</th>
+                <th>Modification</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <script>
+        async function GetIngredients() {
+            const response = await fetch("/api/ingredients", {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+
+            if (response.ok == true) {
+                const ingredients = await response.json();
+                let rows = document.querySelector("tbody");
+                ingredients.forEach(i => {
+                    rows.append(row(i));
+                });
+            }
+        }
+
+        async function GetIngredient(id) {
+            const response = await fetch("/api/ingredients/" + id, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const ingredient = await response.json();
+                const form = document.forms["ingredientForm"];
+
+				form.elements["inId"].value = ingredient.id;
+                form.elements["inName"].value = ingredient.name;
+                form.elements["inReleaseDate"].value = ingredient.releaseDate.substring(0, 10);
+                form.elements["inCount"].value = ingredient.count;
+                form.elements["inCost"].value = ingredient.cost;
+                form.elements["inExpirationDate"].value = ingredient.expirationDate;
+                form.elements["inProvider"].value = ingredient.providerId;
+            }
+        }
+
+        async function CreateIngredient(ingredientId, ingredientName, ingredientReleaseDate, ingredientCount, ingredientCost, ingredientExpirationDate, providerId) {
+            const response = await fetch("api/ingredients", {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: parseInt(ingredientId, 10),
+                    name: ingredientName,
+                    releaseDate: ingredientReleaseDate,
+                    count: parseInt(ingredientCount, 10),
+                    cost: parseFloat(ingredientCost),
+                    expirationDate: parseInt(ingredientExpirationDate, 10),
+                    providerId: parseInt(providerId, 10)
+                })
+            });
+            if (response.ok === true) {
+                const ingredient = await response.json();
+                reset();
+                document.querySelector("tbody").append(row(ingredient));
+            }
+        }
+
+        async function EditIngredient(ingredientId, ingredientName, ingredientReleaseDate, ingredientCount, ingredientCost, ingredientExpirationDate, providerId) {
+            const response = await fetch("/api/ingredients", {
+                method: "PUT",
+                headers: {"Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: parseInt(ingredientId, 10),
+                    name: ingredientName,
+                    releaseDate: ingredientReleaseDate,
+                    count: parseInt(ingredientCount, 10),
+                    cost: parseFloat(ingredientCost),
+                    expirationDate: parseInt(ingredientExpirationDate, 10),
+                    providerId: parseInt(providerId, 10)
+                })
+            });
+            if (response.ok === true) {
+                const ingredient = await response.json();
+                reset();
+                document.querySelector("tr[data-rowid='" + ingredient.id + "']").replaceWith(row(ingredient));
+            }
+        }
+
+        async function DeleteIngredient(id) {
+            const response = await fetch("/api/ingredients/" + id, {
+                method: "DELETE",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const ingredient = await response.json();
+                document.querySelector("tr[data-rowid='" + ingredient.id + "']").remove();
+            }
+        }
+
+        function row(ingredient) {
+            const tr = document.createElement("tr");
+            tr.setAttribute("data-rowid", ingredient.id);
+
+            const idTd = document.createElement("td");
+            idTd.append(ingredient.id);
+            tr.append(idTd);
+
+            const nameTd = document.createElement("td");
+            nameTd.append(ingredient.name);
+            tr.append(nameTd);
+
+            const releaseDatetTd = document.createElement("td");
+            releaseDatetTd.append(ingredient.releaseDate.substring(0, 10));
+            tr.append(releaseDatetTd);
+
+            const countTd = document.createElement("td");
+            countTd.append(ingredient.count);
+            tr.append(countTd);
+
+            const costTd = document.createElement("td");
+            costTd.append(ingredient.cost);
+            tr.append(costTd);
+
+            const expirationDateTd = document.createElement("td");
+            expirationDateTd.append(ingredient.expirationDate);
+            tr.append(expirationDateTd);
+
+            const providerTd = document.createElement("td");
+            providerTd.append(ingredient.provider.name);
+            tr.append(providerTd);
+
+            const linksTd = document.createElement("td");
+
+            const editLink = document.createElement("a");
+            editLink.setAttribute("data-id", ingredient.id);
+            editLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            editLink.append("Change");
+            editLink.addEventListener("click", e => {
+                e.preventDefault();
+                GetIngredient(ingredient.id);
+            });
+            linksTd.append(editLink);
+
+            const removeLink = document.createElement("a");
+            removeLink.setAttribute("data-id", ingredient.id);
+            removeLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            removeLink.append("Delete");
+            removeLink.addEventListener("click", e => {
+                e.preventDefault();
+                DeleteIngredient(ingredient.id);
+            });
+
+            linksTd.append(removeLink);
+            tr.appendChild(linksTd);
+
+            return tr;
+        }
+
+        function reset() {
+            const form = document.forms["ingredientForm"];
+            form.reset();
+            form.elements["inId"].value = 0;
+        }
+
+        document.getElementById("reset").click(function (e) {
+            e.preventDefault();
+            reset();
+        })
+
+        document.forms["ingredientForm"].addEventListener("submit", e => {
+            e.preventDefault();
+            const form = document.forms["ingredientForm"];
+
+            const id = form.elements["inId"].value;
+            const name = form.elements["inName"].value;
+            const releaseDate = form.elements["inReleaseDate"].value;
+            const count = form.elements["inCount"].value;
+            const cost = form.elements["inCost"].value;
+            const expirationDate = form.elements["inExpirationDate"].value;
+            const providerId = form.elements["inProvider"].value;
+
+            if (id == 0)
+                CreateIngredient(id, name, releaseDate, count, cost, expirationDate, providerId);
+            else
+                EditIngredient(id, name, releaseDate, count, cost, expirationDate, providerId);
+        });
+
+        async function GetProviders() {
+            const response = await fetch("/api/ingredients/providers", {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok == true) {
+                const providers = await response.json();
+                let select = document.getElementById("inProvider");
+                var i = 0;
+                providers.forEach(g => {
+                    select.options[i] = new Option(g.name, g.id);
+                    i += 1;
+                })
+            }
+        }
+
+        GetIngredients();
+        GetProviders();
+    </script>
+</body>
+</html>
